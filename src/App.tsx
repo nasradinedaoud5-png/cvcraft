@@ -38,7 +38,7 @@ const translations = {
     plan: "✦ Gratuit — 2 CV/mois",
     planPro: "✦ Pro — Illimité",
     generate: "Générer mon CV",
-    templates: ["Moderne", "Classique", "Créatif", "Minimaliste", "Élégant", "Tech"],
+    templates: ["Sidebar", "Colonnes", "Créatif", "Élégant", "Tech", "Minimaliste"],
     langLevels: ["Natif", "Courant", "Intermédiaire", "Débutant"],
     skillSuggestions: ["Réseaux", "Sécurité", "Python", "Linux", "SQL", "Cloud", "HTML/CSS", "JavaScript", "Git", "Cisco", "Wireshark", "TCP/IP"],
   },
@@ -75,7 +75,7 @@ const translations = {
     plan: "✦ Free — 2 CVs/month",
     planPro: "✦ Pro — Unlimited",
     generate: "Generate my CV",
-    templates: ["Modern", "Classic", "Creative", "Minimalist", "Elegant", "Tech"],
+    templates: ["Sidebar", "Columns", "Creative", "Elegant", "Tech", "Minimal"],
     langLevels: ["Native", "Fluent", "Intermediate", "Beginner"],
     skillSuggestions: ["Networks", "Security", "Python", "Linux", "SQL", "Cloud", "HTML/CSS", "JavaScript", "Git", "Cisco", "Wireshark", "TCP/IP"],
   },
@@ -112,30 +112,33 @@ const translations = {
     plan: "✦ مجاني — 2 سير شهرياً",
     planPro: "✦ برو — غير محدود",
     generate: "إنشاء سيرتي الذاتية",
-    templates: ["عصري", "كلاسيكي", "إبداعي", "بسيط", "أنيق", "تقني"],
+    templates: ["شريط جانبي", "عمودان", "إبداعي", "أنيق", "تقني", "بسيط"],
     langLevels: ["اللغة الأم", "طليق", "متوسط", "مبتدئ"],
     skillSuggestions: ["الشبكات", "الأمن", "بايثون", "لينكس", "SQL", "سحابي", "HTML/CSS", "جافاسكريبت", "Git", "Cisco", "Wireshark", "TCP/IP"],
   },
 };
 
-const TEMPLATE_COLORS = {
-  0: { primary: "#0F6E56", light: "#E1F5EE", accent: "#1D9E75", header: "#0F6E56" },
-  1: { primary: "#1a1a2e", light: "#f0f0f5", accent: "#4a4a8a", header: "#1a1a2e" },
-  2: { primary: "#c0392b", light: "#fdecea", accent: "#e74c3c", header: "#c0392b" },
-  3: { primary: "#555", light: "#f5f5f5", accent: "#888", header: "#fff" },
-  4: { primary: "#7c3aed", light: "#f3eeff", accent: "#a78bfa", header: "#7c3aed" },
-  5: { primary: "#0ea5e9", light: "#e0f5ff", accent: "#38bdf8", header: "#0c1222" },
-};
+// Templates avec vrais designs distincts
+const TEMPLATES = [
+  // 0 — Sidebar colorée (gratuit)
+  { name: "Sidebar", premium: false, accent: "#0F6E56", sidebar: "#0F6E56", bg: "#fff" },
+  // 1 — 2 Colonnes (gratuit)
+  { name: "Colonnes", premium: false, accent: "#1a1a2e", sidebar: "#1a1a2e", bg: "#fff" },
+  // 2 — Magazine créatif (gratuit)
+  { name: "Créatif", premium: false, accent: "#c0392b", sidebar: "#c0392b", bg: "#fff" },
+  // 3 — Sidebar élégant violet (Pro)
+  { name: "Élégant", premium: true, accent: "#7c3aed", sidebar: "#7c3aed", bg: "#fff" },
+  // 4 — Tech dark (Pro)
+  { name: "Tech", premium: true, accent: "#0ea5e9", sidebar: "#0c1222", bg: "#f8fafc" },
+  // 5 — Minimaliste (Pro)
+  { name: "Minimaliste", premium: true, accent: "#333", sidebar: "#fff", bg: "#fff" },
+];
 
-// Styles spéciaux par template
-const TEMPLATE_STYLES = {
-  0: { headerText: "#fff" },
-  1: { headerText: "#fff" },
-  2: { headerText: "#fff" },
-  3: { headerText: "#1a1a1a", headerBorder: "0 0 2px 0px solid #555" },
-  4: { headerText: "#fff" },
-  5: { headerText: "#fff" },
-};
+// Compat avec ancien code
+const TEMPLATE_COLORS = Object.fromEntries(
+  TEMPLATES.map((t,i) => [i, { primary: t.accent, light: t.accent+"22", accent: t.accent, header: t.sidebar }])
+);
+const TEMPLATE_STYLES = Object.fromEntries(TEMPLATES.map((t,i) => [i, { headerText: "#fff" }]));
 
 function Input({ label, value, onChange, placeholder, multiline }) {
   const base = {
@@ -175,142 +178,395 @@ function SectionLabel({ children }) {
 
 function CVPreview({ data, lang, templateIdx, isPro }) {
   const t = translations[lang];
-  const colors = TEMPLATE_COLORS[templateIdx];
-  const isAr = lang === "ar";
-  const dir = isAr ? "rtl" : "ltr";
+  const tmpl = TEMPLATES[templateIdx] || TEMPLATES[0];
+  const ac = tmpl.accent;
+  const light = ac + "22";
 
-  const sectionTitle = (txt) => (
+  const secTitle = (txt) => (
     <div style={{
-      fontSize: 10, fontWeight: 700, color: colors.primary,
+      fontSize: 9, fontWeight: 700, color: ac,
       textTransform: "uppercase", letterSpacing: "0.1em",
-      borderBottom: `1.5px solid ${colors.light}`,
-      paddingBottom: 3, marginBottom: 7, marginTop: 12,
+      borderBottom: `1.5px solid ${light}`,
+      paddingBottom: 3, marginBottom: 6, marginTop: 10,
     }}>{txt}</div>
   );
 
+  const entryBlock = (title, sub, date, desc) => (
+    <div style={{ marginBottom: 7 }}>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: "#1a1a1a" }}>{title}</div>
+        <div style={{ fontSize: 8.5, color: "#999", whiteSpace: "nowrap", marginLeft: 6 }}>{date}</div>
+      </div>
+      <div style={{ fontSize: 9, color: ac, marginBottom: 2 }}>{sub}</div>
+      {desc && <div style={{ fontSize: 9, color: "#666", lineHeight: 1.5 }}>{desc}</div>}
+    </div>
+  );
+
+  const skillTags = (skills) => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
+      {skills.map((s,i) => (
+        <span key={i} style={{
+          fontSize: 8.5, padding: "2px 7px", borderRadius: 20,
+          background: light, color: ac,
+          border: `0.5px solid ${ac}`, fontWeight: 500,
+        }}>{s}</span>
+      ))}
+    </div>
+  );
+
+  const wrapperStyle = {
+    width: "100%", maxWidth: 320, background: tmpl.bg,
+    border: "0.5px solid #e0e0e0", borderRadius: 10,
+    overflow: "hidden", fontFamily: "'Georgia', serif",
+    boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
+  };
+
+  // ═══════════════════════════════════════
+  // TEMPLATE 0 & 3 — SIDEBAR COLORÉE
+  // ═══════════════════════════════════════
+  if (templateIdx === 0 || templateIdx === 3) {
+    return (
+      <div style={wrapperStyle}>
+        <div style={{ display: "flex", minHeight: 400 }}>
+          {/* Sidebar gauche */}
+          <div style={{
+            width: "35%", background: tmpl.sidebar, padding: "16px 10px",
+            display: "flex", flexDirection: "column", gap: 12,
+          }}>
+            {/* Avatar */}
+            <div style={{
+              width: 52, height: 52, borderRadius: "50%",
+              background: "rgba(255,255,255,0.25)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, color: "#fff", margin: "0 auto",
+              border: "2px solid rgba(255,255,255,0.5)",
+            }}>
+              {(data.fname||"?")[0]}{(data.lname||"")[0]}
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", lineHeight: 1.3 }}>
+                {data.fname} {data.lname}
+              </div>
+              <div style={{ fontSize: 8.5, color: "rgba(255,255,255,0.8)", marginTop: 3 }}>
+                {data.jobTitle}
+              </div>
+            </div>
+            {/* Contact */}
+            <div style={{ borderTop: "0.5px solid rgba(255,255,255,0.3)", paddingTop: 10 }}>
+              {[data.email, data.phone, data.city, data.website].filter(Boolean).map((c,i) => (
+                <div key={i} style={{ fontSize: 8, color: "rgba(255,255,255,0.85)", marginBottom: 4, wordBreak: "break-all" }}>{c}</div>
+              ))}
+            </div>
+            {/* Compétences */}
+            {data.skills.length > 0 && (
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Skills</div>
+                {data.skills.map((s,i) => (
+                  <div key={i} style={{ fontSize: 8.5, color: "#fff", marginBottom: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 4, height: 4, borderRadius: "50%", background: "rgba(255,255,255,0.6)", flexShrink: 0 }}></div>
+                    {s}
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Langues */}
+            {data.languages.length > 0 && (
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Langues</div>
+                {data.languages.map((l,i) => (
+                  <div key={i} style={{ fontSize: 8.5, color: "#fff", marginBottom: 3 }}>
+                    <span style={{ fontWeight: 600 }}>{l.name}</span>
+                    {l.level && <span style={{ opacity: 0.7 }}> · {l.level}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Contenu droit */}
+          <div style={{ flex: 1, padding: "16px 12px", overflow: "hidden" }}>
+            {data.about && (
+              <>
+                {secTitle(t.about)}
+                <div style={{ fontSize: 9, color: "#555", lineHeight: 1.6 }}>{data.about}</div>
+              </>
+            )}
+            {data.education.length > 0 && (
+              <>{secTitle(t.education)}{data.education.map((e,i) => entryBlock(e.degree, e.school, e.date, e.desc))}</>
+            )}
+            {data.experience.length > 0 && (
+              <>{secTitle(t.experience)}{data.experience.map((e,i) => entryBlock(e.role, e.company, e.date, e.desc))}</>
+            )}
+          </div>
+        </div>
+        {/* Watermark */}
+        {!isPro && <div style={{ background: "#f9f9f9", borderTop: "0.5px solid #eee", padding: "5px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 9, color: "#bbb" }}>Créé avec CVcraft.app</span>
+          <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 10, background: "#fff3cd", color: "#856404", border: "0.5px solid #ffc107" }}>⚡ Pro</span>
+        </div>}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════
+  // TEMPLATE 1 & 4 — 2 COLONNES
+  // ═══════════════════════════════════════
+  if (templateIdx === 1 || templateIdx === 4) {
+    const dark = templateIdx === 4;
+    const bg = dark ? "#0c1222" : "#fff";
+    const textColor = dark ? "#e2e8f0" : "#1a1a1a";
+    const subColor = dark ? "#94a3b8" : "#666";
+    return (
+      <div style={{ ...wrapperStyle, background: bg }}>
+        {/* Header plein largeur */}
+        <div style={{
+          background: `linear-gradient(135deg, ${ac}, ${ac}cc)`,
+          padding: "16px 16px 12px",
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", letterSpacing: "-0.02em" }}>
+            {data.fname} <span style={{ fontWeight: 300 }}>{data.lname}</span>
+          </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.85)", marginTop: 2 }}>{data.jobTitle}</div>
+          <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+            {[data.email, data.phone, data.city].filter(Boolean).map((c,i) => (
+              <span key={i} style={{ fontSize: 8.5, color: "rgba(255,255,255,0.8)" }}>{c}</span>
+            ))}
+          </div>
+        </div>
+        {/* 2 colonnes */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+          {/* Colonne gauche */}
+          <div style={{ padding: "12px 10px 12px 14px", borderRight: `1px solid ${dark ? "#1e293b" : "#eee"}` }}>
+            {data.about && (
+              <>
+                <div style={{ fontSize: 9, fontWeight: 700, color: ac, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Profil</div>
+                <div style={{ fontSize: 8.5, color: subColor, lineHeight: 1.6, marginBottom: 10 }}>{data.about}</div>
+              </>
+            )}
+            {data.skills.length > 0 && (
+              <>
+                <div style={{ fontSize: 9, fontWeight: 700, color: ac, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Compétences</div>
+                {data.skills.map((s,i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 4 }}>
+                    <div style={{ width: 3, height: 3, borderRadius: "50%", background: ac, flexShrink: 0 }}></div>
+                    <span style={{ fontSize: 8.5, color: textColor }}>{s}</span>
+                  </div>
+                ))}
+              </>
+            )}
+            {data.languages.length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: ac, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Langues</div>
+                {data.languages.map((l,i) => (
+                  <div key={i} style={{ fontSize: 8.5, color: textColor, marginBottom: 3 }}>
+                    {l.name}{l.level && <span style={{ color: subColor }}> · {l.level}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Colonne droite */}
+          <div style={{ padding: "12px 14px 12px 10px" }}>
+            {data.education.length > 0 && (
+              <>
+                <div style={{ fontSize: 9, fontWeight: 700, color: ac, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Formation</div>
+                {data.education.map((e,i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: textColor }}>{e.degree}</div>
+                    <div style={{ fontSize: 8.5, color: ac }}>{e.school}</div>
+                    <div style={{ fontSize: 8, color: subColor }}>{e.date}</div>
+                  </div>
+                ))}
+              </>
+            )}
+            {data.experience.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, color: ac, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>Expérience</div>
+                {data.experience.map((e,i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 9.5, fontWeight: 700, color: textColor }}>{e.role}</div>
+                    <div style={{ fontSize: 8.5, color: ac }}>{e.company}</div>
+                    <div style={{ fontSize: 8, color: subColor }}>{e.date}</div>
+                    {e.desc && <div style={{ fontSize: 8.5, color: subColor, lineHeight: 1.5, marginTop: 2 }}>{e.desc}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Watermark */}
+        {!isPro && <div style={{ background: dark ? "#0f172a" : "#f9f9f9", borderTop: `0.5px solid ${dark ? "#1e293b" : "#eee"}`, padding: "5px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 9, color: "#bbb" }}>Créé avec CVcraft.app</span>
+          <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 10, background: "#fff3cd", color: "#856404", border: "0.5px solid #ffc107" }}>⚡ Pro</span>
+        </div>}
+      </div>
+    );
+  }
+
+  // ═══════════════════════════════════════
+  // TEMPLATE 2 — MAGAZINE CRÉATIF
+  // ═══════════════════════════════════════
+  if (templateIdx === 2) {
+    return (
+      <div style={wrapperStyle}>
+        {/* Bande décorative top */}
+        <div style={{ height: 6, background: `linear-gradient(90deg, ${ac}, ${ac}88, transparent)` }}></div>
+        {/* Header */}
+        <div style={{ padding: "14px 16px 10px", borderBottom: `0.5px solid #eee` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.03em", lineHeight: 1.1 }}>
+                {data.fname}
+                <span style={{ color: ac }}> {data.lname}</span>
+              </div>
+              <div style={{ fontSize: 10, color: "#666", marginTop: 4, fontStyle: "italic" }}>{data.jobTitle}</div>
+            </div>
+            {/* Carré déco */}
+            <div style={{
+              width: 40, height: 40, borderRadius: 8,
+              background: ac, display: "flex", alignItems: "center",
+              justifyContent: "center", fontSize: 16, fontWeight: 900, color: "#fff",
+              flexShrink: 0,
+            }}>
+              {(data.fname||"?")[0]}
+            </div>
+          </div>
+          {/* Contact en ligne */}
+          <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+            {[data.email, data.phone, data.city].filter(Boolean).map((c,i) => (
+              <span key={i} style={{
+                fontSize: 8.5, color: "#555", padding: "2px 8px",
+                background: "#f5f5f5", borderRadius: 20, border: "0.5px solid #ddd",
+              }}>{c}</span>
+            ))}
+          </div>
+        </div>
+        {/* Contenu */}
+        <div style={{ padding: "10px 16px 14px" }}>
+          {data.about && (
+            <div style={{ marginBottom: 10, padding: "8px 10px", background: ac+"11", borderLeft: `3px solid ${ac}`, borderRadius: "0 6px 6px 0" }}>
+              <div style={{ fontSize: 9, color: "#555", lineHeight: 1.6 }}>{data.about}</div>
+            </div>
+          )}
+          {data.education.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, marginTop: 8 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 4, background: ac, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 9, color: "#fff" }}>🎓</span>
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.education}</div>
+              </div>
+              {data.education.map((e,i) => (
+                <div key={i} style={{ marginBottom: 7, paddingLeft: 22 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1a1a1a" }}>{e.degree}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: 9, color: ac }}>{e.school}</div>
+                    <div style={{ fontSize: 8.5, color: "#999" }}>{e.date}</div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+          {data.experience.length > 0 && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6, marginTop: 8 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 4, background: ac, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 9, color: "#fff" }}>💼</span>
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.08em" }}>{t.experience}</div>
+              </div>
+              {data.experience.map((e,i) => (
+                <div key={i} style={{ marginBottom: 7, paddingLeft: 22 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1a1a1a" }}>{e.role}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: 9, color: ac }}>{e.company}</div>
+                    <div style={{ fontSize: 8.5, color: "#999" }}>{e.date}</div>
+                  </div>
+                  {e.desc && <div style={{ fontSize: 8.5, color: "#666", lineHeight: 1.5, marginTop: 2 }}>{e.desc}</div>}
+                </div>
+              ))}
+            </>
+          )}
+          {/* Skills + Langues en ligne */}
+          {data.skills.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{t.skills}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+                {data.skills.map((s,i) => (
+                  <span key={i} style={{ fontSize: 8.5, padding: "2px 8px", borderRadius: 4, background: ac, color: "#fff", fontWeight: 500 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {data.languages.length > 0 && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 5 }}>{t.languages}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {data.languages.map((l,i) => (
+                  <div key={i} style={{ fontSize: 9, color: "#444" }}>
+                    <span style={{ fontWeight: 700 }}>{l.name}</span>
+                    {l.level && <span style={{ color: "#999" }}> ({l.level})</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        {/* Watermark */}
+        {!isPro && <div style={{ background: "#f9f9f9", borderTop: "0.5px solid #eee", padding: "5px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 9, color: "#bbb" }}>Créé avec CVcraft.app</span>
+          <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 10, background: "#fff3cd", color: "#856404", border: "0.5px solid #ffc107" }}>⚡ Pro</span>
+        </div>}
+      </div>
+    );
+  }
+
+  // TEMPLATE 5 — MINIMALISTE
   return (
-    <div dir={dir} style={{
-      width: "100%", maxWidth: 320, background: "#fff",
-      border: "0.5px solid #e0e0e0", borderRadius: 10,
-      overflow: "hidden", fontFamily: "'Georgia', serif",
-      boxShadow: "0 4px 24px rgba(0,0,0,0.08)",
-    }}>
-      {/* Header */}
-      <div style={{
-        background: colors.header, padding: "18px 18px 14px",
-        color: (TEMPLATE_STYLES[templateIdx]?.headerText || "#fff"),
-        borderBottom: templateIdx === 3 ? "2px solid #333" : "none",
-      }}>
-        <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 2, letterSpacing: "-0.01em" }}>
+    <div style={wrapperStyle}>
+      <div style={{ padding: "20px 18px 14px", borderBottom: "2px solid #1a1a1a" }}>
+        <div style={{ fontSize: 18, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.03em" }}>
           {data.fname} {data.lname}
         </div>
-        {data.jobTitle && <div style={{ fontSize: 11, opacity: 0.85, marginBottom: 8 }}>{data.jobTitle}</div>}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "8px 16px" }}>
-          {data.email && <span style={{ fontSize: 10, opacity: 0.9 }}>✉ {data.email}</span>}
-          {data.phone && <span style={{ fontSize: 10, opacity: 0.9 }}>☎ {data.phone}</span>}
-          {data.city && <span style={{ fontSize: 10, opacity: 0.9 }}>⌖ {data.city}</span>}
-          {data.website && <span style={{ fontSize: 10, opacity: 0.9 }}>⌘ {data.website}</span>}
+        <div style={{ fontSize: 10, color: "#666", marginTop: 3 }}>{data.jobTitle}</div>
+        <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+          {[data.email, data.phone, data.city].filter(Boolean).map((c,i) => (
+            <span key={i} style={{ fontSize: 8.5, color: "#888" }}>{c}</span>
+          ))}
         </div>
       </div>
-
-      <div style={{ padding: "10px 16px 16px" }}>
-        {/* About */}
-        {data.about && (
-          <>
-            {sectionTitle(t.about)}
-            <div style={{ fontSize: 10, color: "#444", lineHeight: 1.6 }}>{data.about}</div>
-          </>
-        )}
-
-        {/* Education */}
+      <div style={{ padding: "10px 18px 14px" }}>
+        {data.about && <div style={{ fontSize: 9, color: "#555", lineHeight: 1.7, marginBottom: 10, paddingBottom: 10, borderBottom: "0.5px solid #eee" }}>{data.about}</div>}
         {data.education.length > 0 && (
           <>
-            {sectionTitle(t.education)}
-            {data.education.map((edu, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1a1a1a" }}>{edu.degree}</div>
-                  <div style={{ fontSize: 9, color: "#999", whiteSpace: "nowrap", marginLeft: 8 }}>{edu.date}</div>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 7 }}>{t.education}</div>
+            {data.education.map((e,i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: "#1a1a1a" }}>{e.degree}</div>
+                  <div style={{ fontSize: 9, color: "#888" }}>{e.school}</div>
                 </div>
-                <div style={{ fontSize: 10, color: colors.primary, marginBottom: 2 }}>{edu.school}</div>
-                {edu.desc && <div style={{ fontSize: 9.5, color: "#666", lineHeight: 1.5 }}>{edu.desc}</div>}
+                <div style={{ fontSize: 8.5, color: "#bbb", whiteSpace: "nowrap" }}>{e.date}</div>
               </div>
             ))}
           </>
         )}
-
-        {/* Experience */}
-        {data.experience.length > 0 && (
-          <>
-            {sectionTitle(t.experience)}
-            {data.experience.map((exp, i) => (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#1a1a1a" }}>{exp.role}</div>
-                  <div style={{ fontSize: 9, color: "#999", whiteSpace: "nowrap", marginLeft: 8 }}>{exp.date}</div>
-                </div>
-                <div style={{ fontSize: 10, color: colors.primary, marginBottom: 2 }}>{exp.company}</div>
-                {exp.desc && <div style={{ fontSize: 9.5, color: "#666", lineHeight: 1.5 }}>{exp.desc}</div>}
-              </div>
-            ))}
-          </>
-        )}
-
-        {/* Skills */}
         {data.skills.length > 0 && (
-          <>
-            {sectionTitle(t.skills)}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {data.skills.map((s, i) => (
-                <span key={i} style={{
-                  fontSize: 9, padding: "2px 8px", borderRadius: 20,
-                  background: colors.light, color: colors.primary,
-                  border: `0.5px solid ${colors.accent}`, fontWeight: 500,
-                }}>{s}</span>
-              ))}
-            </div>
-          </>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>{t.skills}</div>
+            <div style={{ fontSize: 9, color: "#555" }}>{data.skills.join("  ·  ")}</div>
+          </div>
         )}
-
-        {/* Languages */}
         {data.languages.length > 0 && (
-          <>
-            {sectionTitle(t.languages)}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
-              {data.languages.map((l, i) => (
-                <div key={i} style={{ fontSize: 10, color: "#444" }}>
-                  <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{l.name}</span>
-                  {l.level && <span style={{ color: "#999" }}> · {l.level}</span>}
-                </div>
-              ))}
-            </div>
-          </>
+          <div style={{ marginTop: 8 }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: "#1a1a1a", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 6 }}>{t.languages}</div>
+            <div style={{ fontSize: 9, color: "#555" }}>{data.languages.map(l => `${l.name} (${l.level})`).join("  ·  ")}</div>
+          </div>
         )}
       </div>
-
-      {/* Watermark free plan */}
-      {!isPro && (
-        <div style={{
-          background: "#f9f9f9", borderTop: "0.5px solid #eee",
-          padding: "7px 14px", display: "flex", alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-            <div style={{
-              width: 16, height: 16, borderRadius: 4,
-              background: colors.primary, display: "flex",
-              alignItems: "center", justifyContent: "center",
-              color: "#fff", fontSize: 9, fontWeight: 700,
-            }}>C</div>
-            <span style={{ fontSize: 10, color: "#aaa", fontWeight: 500 }}>Créé avec CVcraft.app</span>
-          </div>
-          <span style={{
-            fontSize: 9, padding: "2px 7px", borderRadius: 20,
-            background: "#fff3cd", color: "#856404",
-            border: "0.5px solid #ffc107", fontWeight: 600, cursor: "pointer",
-          }}>⚡ Supprimer avec Pro</span>
-        </div>
-      )}
+      {!isPro && <div style={{ background: "#f9f9f9", borderTop: "0.5px solid #eee", padding: "5px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span style={{ fontSize: 9, color: "#bbb" }}>Créé avec CVcraft.app</span>
+        <span style={{ fontSize: 8, padding: "2px 6px", borderRadius: 10, background: "#fff3cd", color: "#856404", border: "0.5px solid #ffc107" }}>⚡ Pro</span>
+      </div>}
     </div>
   );
 }
@@ -325,6 +581,160 @@ export default function CVCraft() {
   const [aiError, setAiError] = useState("");
   const [scoreData, setScoreData] = useState(null);
   const [scoreLoading, setScoreLoading] = useState(false);
+  const [activationCode, setActivationCode] = useState("");
+  const [codeError, setCodeError] = useState("");
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  // Code d'activation secret — change-le après chaque paiement PayPal
+  const VALID_CODES = ["CVPRO2026", "NASRO2026", "SUMMER26", "PRO2026"];
+
+  const checkActivationCode = () => {
+    if (VALID_CODES.includes(activationCode.trim().toUpperCase())) {
+      setIsPro(true);
+      setShowCodeInput(false);
+      setCodeError("");
+      setActivationCode("");
+    } else {
+      setCodeError("❌ Code invalide. Vérifie ton email de confirmation PayPal.");
+    }
+  };
+
+  const generatePDF = async () => {
+    setPdfLoading(true);
+    try {
+      // Charger jsPDF dynamiquement
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      document.head.appendChild(script);
+      await new Promise(resolve => script.onload = resolve);
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const colors_pdf = TEMPLATE_COLORS[templateIdx];
+
+      // Convertir hex en RGB
+      const hexToRgb = (hex) => {
+        const r = parseInt(hex.slice(1,3),16);
+        const g = parseInt(hex.slice(3,5),16);
+        const b = parseInt(hex.slice(5,7),16);
+        return [r,g,b];
+      };
+
+      const [pr, pg, pb] = hexToRgb(colors_pdf.primary);
+      const pageW = 210;
+
+      // Header
+      doc.setFillColor(pr, pg, pb);
+      doc.rect(0, 0, pageW, 45, "F");
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(20);
+      doc.setFont("helvetica","bold");
+      doc.text(`${data.fname} ${data.lname}`, 15, 16);
+      doc.setFontSize(11);
+      doc.setFont("helvetica","normal");
+      doc.text(data.jobTitle || "", 15, 24);
+      doc.setFontSize(9);
+      const contactLine = [data.email, data.phone, data.city].filter(Boolean).join("  |  ");
+      doc.text(contactLine, 15, 32);
+      if (data.website) doc.text(data.website, 15, 38);
+
+      let y = 55;
+      const addSection = (title) => {
+        doc.setFillColor(pr, pg, pb);
+        doc.setDrawColor(pr, pg, pb);
+        doc.setFontSize(10);
+        doc.setFont("helvetica","bold");
+        doc.setTextColor(pr, pg, pb);
+        doc.text(title.toUpperCase(), 15, y);
+        doc.setDrawColor(pr, pg, pb);
+        doc.line(15, y+1, pageW-15, y+1);
+        y += 8;
+        doc.setTextColor(30,30,30);
+      };
+
+      // À propos
+      if (data.about) {
+        addSection("À Propos");
+        doc.setFontSize(9);
+        doc.setFont("helvetica","normal");
+        const lines = doc.splitTextToSize(data.about, pageW - 30);
+        doc.text(lines, 15, y);
+        y += lines.length * 5 + 6;
+      }
+
+      // Formation
+      if (data.education.length > 0) {
+        addSection("Formation");
+        data.education.forEach(edu => {
+          doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
+          doc.text(edu.degree || "", 15, y);
+          doc.setFontSize(9); doc.setFont("helvetica","normal");
+          doc.setTextColor(pr, pg, pb);
+          doc.text(edu.school || "", 15, y+5);
+          doc.setTextColor(100,100,100);
+          doc.text(edu.date || "", pageW-15, y, { align: "right" });
+          if (edu.desc) {
+            doc.setTextColor(80,80,80);
+            const descLines = doc.splitTextToSize(edu.desc, pageW-30);
+            doc.text(descLines, 15, y+10);
+            y += descLines.length * 4 + 16;
+          } else { y += 14; }
+        });
+        y += 2;
+      }
+
+      // Expérience
+      if (data.experience.length > 0) {
+        addSection("Expérience");
+        data.experience.forEach(exp => {
+          doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30);
+          doc.text(exp.role || "", 15, y);
+          doc.setFontSize(9); doc.setFont("helvetica","normal");
+          doc.setTextColor(pr, pg, pb);
+          doc.text(exp.company || "", 15, y+5);
+          doc.setTextColor(100,100,100);
+          doc.text(exp.date || "", pageW-15, y, { align: "right" });
+          if (exp.desc) {
+            doc.setTextColor(80,80,80);
+            const descLines = doc.splitTextToSize(exp.desc, pageW-30);
+            doc.text(descLines, 15, y+10);
+            y += descLines.length * 4 + 16;
+          } else { y += 14; }
+        });
+        y += 2;
+      }
+
+      // Compétences
+      if (data.skills.length > 0) {
+        addSection("Compétences");
+        doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
+        doc.text(data.skills.join("  •  "), 15, y);
+        y += 10;
+      }
+
+      // Langues
+      if (data.languages.length > 0) {
+        addSection("Langues");
+        doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
+        doc.text(data.languages.map(l => `${l.name} (${l.level})`).join("  |  "), 15, y);
+        y += 10;
+      }
+
+      // Watermark si pas Pro
+      if (!isPro) {
+        doc.setFontSize(8);
+        doc.setTextColor(180,180,180);
+        doc.text("Créé avec CVcraft.app — Passez au Pro pour supprimer ce watermark", pageW/2, 290, { align: "center" });
+      }
+
+      doc.save(`CV_${data.fname}_${data.lname}.pdf`);
+    } catch(e) {
+      console.error(e);
+      window.print();
+    }
+    setPdfLoading(false);
+  };
   const t = translations[lang];
 
   const [data, setData] = useState({
@@ -756,10 +1166,10 @@ Sois précis, bienveillant et constructif. Les conseils doivent être actionnabl
                         padding: "10px 24px", borderRadius: 10, border: "none",
                         background: "#003087", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
                       }}>🅿️ Payer 5$/mois via PayPal</button>
-                      <button onClick={() => setIsPro(true)} style={{
+                      <button onClick={() => setShowCodeInput(true)} style={{
                         padding: "7px", borderRadius: 8, border: "0.5px solid #ddd",
                         background: "#f9f9f9", color: "#666", fontSize: 11, cursor: "pointer",
-                      }}>✓ J'ai déjà payé — Activer Pro</button>
+                      }}>✓ J'ai déjà payé — Entrer mon code</button>
                     </div>
                   </div>
                 ) : (
@@ -864,10 +1274,10 @@ Sois précis, bienveillant et constructif. Les conseils doivent être actionnabl
                         padding: "10px 24px", borderRadius: 10, border: "none",
                         background: "#003087", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
                       }}>🅿️ Payer 5$/mois via PayPal</button>
-                      <button onClick={() => setIsPro(true)} style={{
+                      <button onClick={() => setShowCodeInput(true)} style={{
                         padding: "7px", borderRadius: 8, border: "0.5px solid #ddd",
                         background: "#f9f9f9", color: "#666", fontSize: 11, cursor: "pointer",
-                      }}>✓ J'ai déjà payé — Activer Pro</button>
+                      }}>✓ J'ai déjà payé — Entrer mon code</button>
                     </div>
                   </div>
                 ) : (
@@ -959,7 +1369,7 @@ Sois précis, bienveillant et constructif. Les conseils doivent être actionnabl
               border: `0.5px solid ${isPro ? "#ffc107" : colors.accent}`,
             }}>{isPro ? "⚡ Plan Pro actif" : t.plan}</span>
             <button
-              onClick={() => window.print()}
+              onClick={generatePDF} disabled={pdfLoading}
               style={{
                 padding: "10px 20px", borderRadius: 10,
                 border: "none", background: colors.primary, color: "#fff",
@@ -968,7 +1378,7 @@ Sois précis, bienveillant et constructif. Les conseils doivent être actionnabl
                 boxShadow: `0 4px 14px ${colors.primary}40`,
                 transition: "opacity 0.15s",
               }}>
-              ↓ {t.download}
+              {pdfLoading ? "⏳ Génération..." : `↓ ${t.download}`}
             </button>
           </div>
 
@@ -996,13 +1406,43 @@ Sois précis, bienveillant et constructif. Les conseils doivent être actionnabl
                 }}>
                   🅿️ Payer 5$/mois via PayPal
                 </button>
-                <button onClick={() => setIsPro(true)} style={{
-                  padding: "6px", borderRadius: 8, border: "0.5px solid rgba(255,255,255,0.3)",
-                  background: "transparent", color: "rgba(255,255,255,0.7)",
-                  fontSize: 11, cursor: "pointer",
-                }}>
-                  ✓ J'ai déjà payé — Activer Pro
-                </button>
+                {!showCodeInput ? (
+                  <button onClick={() => setShowCodeInput(true)} style={{
+                    padding: "6px", borderRadius: 8, border: "0.5px solid rgba(255,255,255,0.3)",
+                    background: "transparent", color: "rgba(255,255,255,0.7)",
+                    fontSize: 11, cursor: "pointer",
+                  }}>
+                    ✓ J'ai déjà payé — Entrer mon code
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    <input
+                      value={activationCode}
+                      onChange={e => { setActivationCode(e.target.value); setCodeError(""); }}
+                      placeholder="Ex: CVPRO2026"
+                      style={{
+                        padding: "8px 12px", borderRadius: 8, border: "none",
+                        fontSize: 13, fontFamily: "inherit", textAlign: "center",
+                        textTransform: "uppercase", letterSpacing: "0.1em",
+                      }}
+                      onKeyDown={e => e.key === "Enter" && checkActivationCode()}
+                    />
+                    {codeError && <div style={{ fontSize: 11, color: "#ffcccc", textAlign: "center" }}>{codeError}</div>}
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button onClick={checkActivationCode} style={{
+                        flex: 1, padding: "7px", borderRadius: 8, border: "none",
+                        background: "#fff", color: colors.primary,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer",
+                      }}>Activer ✓</button>
+                      <button onClick={() => { setShowCodeInput(false); setCodeError(""); }} style={{
+                        padding: "7px 10px", borderRadius: 8,
+                        border: "0.5px solid rgba(255,255,255,0.3)",
+                        background: "transparent", color: "rgba(255,255,255,0.7)",
+                        fontSize: 11, cursor: "pointer",
+                      }}>✕</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <button onClick={() => setIsPro(false)} style={{
