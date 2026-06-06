@@ -768,41 +768,14 @@ export default function CVCraft() {
     setAiLoading(true);
     setAiError("");
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `Tu es un expert en rédaction de CV. L'utilisateur décrit ce qu'il veut pour son CV. Génère les données JSON correspondantes en respectant EXACTEMENT ce format (réponds UNIQUEMENT avec le JSON, aucun texte avant ou après) :
-{
-  "fname": "...",
-  "lname": "...",
-  "jobTitle": "...",
-  "email": "...",
-  "phone": "...",
-  "city": "...",
-  "website": "",
-  "about": "...",
-  "education": [{ "school": "...", "degree": "...", "date": "...", "desc": "..." }],
-  "experience": [{ "company": "...", "role": "...", "date": "...", "desc": "..." }],
-  "skills": ["...", "..."],
-  "languages": [{ "name": "...", "level": "..." }]
-}
-
-Description de l'utilisateur : ${aiPrompt}
-
-Génère un CV professionnel et réaliste basé sur cette description. Si une info manque, invente quelque chose de plausible.`
-          }]
-        })
+        body: JSON.stringify({ prompt: aiPrompt }),
       });
       const result = await response.json();
-      const text = result.content?.[0]?.text || "";
-      const clean = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
-      const parsed = JSON.parse(clean);
-      setData(d => ({ ...d, ...parsed }));
+      if (result.error) throw new Error(result.error);
+      setData(d => ({ ...d, ...result.cv }));
       setAiPrompt("");
     } catch (e) {
       setAiError("Erreur lors de la génération. Réessaie.");
@@ -815,42 +788,14 @@ Génère un CV professionnel et réaliste basé sur cette description. Si une in
     setScoreLoading(true);
     setScoreData(null);
     try {
-      const cvSummary = `
-        Nom: ${data.fname} ${data.lname}
-        Titre: ${data.jobTitle}
-        À propos: ${data.about}
-        Formation: ${data.education.map(e => e.degree + " à " + e.school).join(", ")}
-        Expérience: ${data.experience.map(e => e.role + " chez " + e.company).join(", ") || "Aucune"}
-        Compétences: ${data.skills.join(", ")}
-        Langues: ${data.languages.map(l => l.name).join(", ")}
-      `;
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/score", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
-            role: "user",
-            content: `Analyse ce CV et retourne UNIQUEMENT un JSON (sans backticks, sans texte avant ou après) :
-{
-  "score": <nombre entre 0 et 100>,
-  "mention": "<Excellent|Très bien|Bien|À améliorer>",
-  "points": ["<point fort 1>", "<point fort 2>", "<point fort 3>"],
-  "conseils": ["<conseil 1>", "<conseil 2>", "<conseil 3>"]
-}
-
-CV à analyser:
-${cvSummary}
-
-Sois précis, bienveillant et constructif. Les conseils doivent être actionnables.`
-          }]
-        })
+        body: JSON.stringify({ cv: data }),
       });
       const result = await response.json();
-      const text = result.content?.[0]?.text || "{}";
-      const clean = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
-      setScoreData(JSON.parse(clean));
+      if (result.error) throw new Error(result.error);
+      setScoreData(result.result);
     } catch(e) {
       setScoreData({ score: 0, mention: "Erreur", points: [], conseils: ["Impossible d'analyser le CV. Réessaie."] });
     }
