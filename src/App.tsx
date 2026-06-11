@@ -138,6 +138,8 @@ function Input({ label, value, onChange, placeholder, multiline }) {
     outline: "none", transition: "border-color 0.15s",
     resize: multiline ? "vertical" : "none",
     minHeight: multiline ? 68 : undefined,
+    WebkitTextFillColor: "#1a1a1a",
+    caretColor: "#1a1a1a",
   };
   return (
     <div style={{ marginBottom: 10 }}>
@@ -1412,7 +1414,11 @@ Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans texte avant ou apr�
       background: "linear-gradient(135deg, #f8f9fa 0%, #eef2f7 100%)",
       fontFamily: "'DM Sans', 'Segoe UI', sans-serif",
     }}>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        textarea, input { color: #1a1a1a !important; -webkit-text-fill-color: #1a1a1a !important; caret-color: #1a1a1a !important; }
+        textarea::placeholder, input::placeholder { color: #aaa !important; -webkit-text-fill-color: #aaa !important; }
+      `}</style>
       {/* Top nav */}
       <div style={{
         background: "#fff", borderBottom: "0.5px solid #e8e8e8",
@@ -1676,7 +1682,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans texte avant ou apr�
                           borderRadius: 10, border: "0.5px solid #ddd",
                           fontSize: 12, fontFamily: "inherit", lineHeight: 1.6,
                           background: "#fafafa", resize: "vertical", outline: "none",
-                          color: "#333", boxSizing: "border-box",
+                          color: "#1a1a1a", WebkitTextFillColor: "#1a1a1a", caretColor: "#1a1a1a", boxSizing: "border-box",
                         }}
                       />
                     </div>
@@ -2004,7 +2010,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans texte avant ou apr�
                     <div style={{ fontSize: 12, color: "#856404", background: "#fff3cd", border: "0.5px solid #ffc107", borderRadius: 8, padding: "8px 12px", marginBottom: 12, lineHeight: 1.6 }}>
                       💡 <em>"Je m'appelle Yassine, 20 ans, étudiant en réseaux à Tanger. Je maîtrise Linux, Cisco et Python. Je cherche un stage en cybersécurité."</em>
                     </div>
-                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="Décris ton profil, tes études, tes compétences..." style={{ width: "100%", minHeight: 120, padding: "10px 12px", borderRadius: 10, border: "0.5px solid #ddd", fontSize: 13, fontFamily: "inherit", lineHeight: 1.6, background: "#fafafa", resize: "vertical", outline: "none", boxSizing: "border-box" }} />
+                    <textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} placeholder="Décris ton profil, tes études, tes compétences..." style={{ width: "100%", minHeight: 120, padding: "10px 12px", borderRadius: 10, border: "0.5px solid #ddd", fontSize: 13, fontFamily: "inherit", lineHeight: 1.6, background: "#fafafa", color: "#1a1a1a", WebkitTextFillColor: "#1a1a1a", caretColor: "#1a1a1a", resize: "vertical", outline: "none", boxSizing: "border-box" }} />
                     {aiError && <div style={{ fontSize: 12, color: "#c0392b", marginTop: 6 }}>{aiError}</div>}
                     <button onClick={generateFromAI} disabled={aiLoading || !aiPrompt.trim()} style={{ width: "100%", marginTop: 12, padding: "11px", borderRadius: 10, border: "none", background: aiLoading || !aiPrompt.trim() ? "#ccc" : "#0F6E56", color: "#fff", fontSize: 14, fontWeight: 700, cursor: aiLoading || !aiPrompt.trim() ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                       {aiLoading ? <>⟳ Génération en cours...</> : <>✨ Générer mon CV avec l'IA</>}
