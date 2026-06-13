@@ -412,7 +412,7 @@ function TemplateConsulting({ data, isPro }) {
               letterSpacing: "-0.02em", lineHeight: 1.1,
               fontFamily: "'Helvetica Neue', Arial, sans-serif",
             }}>
-              {data.fname} <span style={{ fontWeight: 300 }}>{data.lname}</span>
+              {(data.fname || "") + (data.fname && data.lname ? " " : "") + (data.lname || "")}
             </div>
             <div style={{
               fontSize: 8.5, color: "rgba(255,255,255,0.65)", marginTop: 4,
@@ -970,62 +970,80 @@ export default function CVCraft() {
   const generatePDF = async () => {
     setPdfLoading(true);
     try {
-      const script = document.createElement("script");
-      script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
-      document.head.appendChild(script);
-      await new Promise(resolve => script.onload = resolve);
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const tmpl = TEMPLATES[templateIdx];
-      const hexToRgb = (hex) => [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
-      const [pr, pg, pb] = hexToRgb(tmpl.accent);
-      const pageW = 210;
-      let y = 0;
+      // Charger html2canvas + jsPDF
+      const loadScript = (src) => new Promise((res, rej) => {
+        if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
+        const s = document.createElement("script");
+        s.src = src;
+        s.onload = res;
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
 
-      if (templateIdx === 3) {
-        // Executive — une colonne pure
-        doc.setFillColor(255,255,255); doc.rect(0,0,pageW,297,"F");
-        doc.setDrawColor(26,26,26); doc.setLineWidth(0.5);
-        doc.setFontSize(22); doc.setFont("helvetica","bold"); doc.setTextColor(13,13,13);
-        doc.text(`${(data.fname||"").toUpperCase()} ${(data.lname||"").toUpperCase()}`, 18, 22);
-        doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(80,80,80);
-        doc.text((data.jobTitle||"").toUpperCase(), 18, 29);
-        const contact = [data.email,data.phone,data.city,data.website].filter(Boolean).join("  |  ");
-        doc.setFontSize(8); doc.setTextColor(100,100,100); doc.text(contact, 18, 35);
-        doc.line(18, 38, pageW-18, 38);
-        y = 46;
-        const addSec = (title) => {
-          doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(13,13,13);
-          doc.text(title.toUpperCase(), 18, y);
-          doc.line(18+doc.getTextWidth(title.toUpperCase())+3, y-0.5, pageW-18, y-0.5);
-          y += 6;
-          doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60);
-        };
-        if (data.about) { addSec("Profil"); doc.setFontSize(9); const lines = doc.splitTextToSize(data.about, pageW-36); doc.text(lines, 18, y); y += lines.length*5+5; }
-        if (data.experience.length > 0) { addSec("Expérience Professionnelle"); data.experience.forEach(e => { doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(13,13,13); doc.text(e.role||"", 18, y); doc.setFontSize(9); doc.setFont("helvetica","italic"); doc.setTextColor(80,80,80); doc.text(e.company||"", 18, y+5); doc.setFont("helvetica","normal"); doc.setTextColor(130,130,130); doc.text(e.date||"", pageW-18, y, {align:"right"}); if (e.desc) { doc.setTextColor(80,80,80); const dl = doc.splitTextToSize(e.desc, pageW-36); doc.text(dl, 18, y+10); y += dl.length*4+17; } else { y += 13; } }); }
-        if (data.education.length > 0) { addSec("Formation"); data.education.forEach(e => { doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(13,13,13); doc.text(e.degree||"", 18, y); doc.setFontSize(9); doc.setFont("helvetica","italic"); doc.setTextColor(80,80,80); doc.text(e.school||"", 18, y+5); doc.setFont("helvetica","normal"); doc.setTextColor(130,130,130); doc.text(e.date||"", pageW-18, y, {align:"right"}); y += 13; }); }
-        if (data.skills.length > 0) { addSec("Compétences & Langues"); doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60); doc.text(data.skills.join("  ·  "), 18, y); y += 8; }
-        if (!isPro) { doc.setFontSize(7); doc.setTextColor(180,180,180); doc.text("Créé avec CVcraft.app — Pro pour supprimer ce watermark", pageW/2, 290, {align:"center"}); }
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+
+      // Trouver l'élément de prévisualisation du CV
+      const cvElement = document.getElementById("cv-preview-container");
+      if (!cvElement) throw new Error("Élément CV introuvable");
+
+      // Capturer le CV tel qu'il apparaît visuellement
+      const canvas = await window.html2canvas(cvElement, {
+        scale: 3, // haute résolution
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#ffffff",
+        logging: false,
+      });
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageW = 210;
+      const pageH = 297;
+      const imgW = pageW;
+      const imgH = (canvas.height * pageW) / canvas.width;
+
+      // Si le CV dépasse une page, on scale pour tout faire tenir
+      if (imgH <= pageH) {
+        doc.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, imgH);
       } else {
-        // Templates standard
-        doc.setFillColor(pr,pg,pb); doc.rect(0,0,pageW,45,"F");
-        doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont("helvetica","bold");
-        doc.text(`${data.fname} ${data.lname}`, 15, 16);
-        doc.setFontSize(11); doc.setFont("helvetica","normal"); doc.text(data.jobTitle||"", 15, 24);
-        doc.setFontSize(9); doc.text([data.email,data.phone,data.city].filter(Boolean).join("  |  "), 15, 32);
-        y = 55;
-        const addSection = (title) => { doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(pr,pg,pb); doc.text(title.toUpperCase(), 15, y); doc.setDrawColor(pr,pg,pb); doc.line(15,y+1,pageW-15,y+1); y += 8; doc.setFont("helvetica","normal"); doc.setTextColor(30,30,30); };
-        if (data.about) { addSection("À Propos"); doc.setFontSize(9); const lines = doc.splitTextToSize(data.about, pageW-30); doc.text(lines,15,y); y+=lines.length*5+6; }
-        if (data.education.length > 0) { addSection("Formation"); data.education.forEach(e => { doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.text(e.degree||"",15,y); doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(pr,pg,pb); doc.text(e.school||"",15,y+5); doc.setTextColor(100,100,100); doc.text(e.date||"",pageW-15,y,{align:"right"}); if(e.desc){doc.setTextColor(80,80,80);const dl=doc.splitTextToSize(e.desc,pageW-30);doc.text(dl,15,y+10);y+=dl.length*4+16;}else{y+=14;} }); }
-        if (data.experience.length > 0) { addSection("Expérience"); data.experience.forEach(e => { doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(30,30,30); doc.text(e.role||"",15,y); doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(pr,pg,pb); doc.text(e.company||"",15,y+5); doc.setTextColor(100,100,100); doc.text(e.date||"",pageW-15,y,{align:"right"}); if(e.desc){doc.setTextColor(80,80,80);const dl=doc.splitTextToSize(e.desc,pageW-30);doc.text(dl,15,y+10);y+=dl.length*4+16;}else{y+=14;} }); }
-        if (data.skills.length > 0) { addSection("Compétences"); doc.setFontSize(9); doc.setFont("helvetica","normal"); doc.setTextColor(60,60,60); doc.text(data.skills.join("  •  "),15,y); y+=10; }
-        if (data.languages.length > 0) { addSection("Langues"); doc.setFontSize(9); doc.setTextColor(60,60,60); doc.text(data.languages.map(l=>`${l.name} (${l.level})`).join("  |  "),15,y); y+=10; }
-        if (!isPro) { doc.setFontSize(8); doc.setTextColor(180,180,180); doc.text("Créé avec CVcraft.app — Pro pour supprimer ce watermark", pageW/2, 290, {align:"center"}); }
+        // Multi-page : découper en tranches
+        let yPos = 0;
+        let remaining = canvas.height;
+        const pageHeightPx = (pageH * canvas.width) / pageW;
+        let page = 0;
+        while (remaining > 0) {
+          const sliceH = Math.min(pageHeightPx, remaining);
+          const sliceCanvas = document.createElement("canvas");
+          sliceCanvas.width = canvas.width;
+          sliceCanvas.height = sliceH;
+          const ctx = sliceCanvas.getContext("2d");
+          ctx.drawImage(canvas, 0, yPos, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+          if (page > 0) doc.addPage();
+          const sliceImgH = (sliceH * pageW) / canvas.width;
+          doc.addImage(sliceCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, sliceImgH);
+          yPos += sliceH;
+          remaining -= sliceH;
+          page++;
+        }
       }
 
-      doc.save(`CV_${data.fname}_${data.lname}.pdf`);
-    } catch(e) {
-      console.error(e); window.print();
+      // Watermark discret si gratuit
+      if (!isPro) {
+        doc.setFontSize(7);
+        doc.setTextColor(200, 200, 200);
+        doc.text("Créé avec CVcraft.app", pageW / 2, pageH - 4, { align: "center" });
+      }
+
+      doc.save(`CV_${data.fname || "CV"}_${data.lname || ""}.pdf`);
+    } catch (e) {
+      console.error("PDF error:", e);
+      alert("Erreur lors de la génération du PDF. Réessaie.");
     }
     setPdfLoading(false);
   };
@@ -2028,7 +2046,7 @@ Réponds UNIQUEMENT avec un JSON valide, sans markdown, sans texte avant ou apr�
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "#fff", borderRadius: 14, border: "0.5px solid #e8e8e8", padding: "16px 18px", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: "#888", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 14 }}>{t.preview}</div>
-            <div style={{ display: "flex", justifyContent: "center" }}>
+            <div id="cv-preview-container" style={{ display: "flex", justifyContent: "center" }}>
               <CVPreview data={data} lang={lang} templateIdx={templateIdx} isPro={isPro} />
             </div>
           </div>
