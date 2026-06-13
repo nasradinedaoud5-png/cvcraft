@@ -967,86 +967,134 @@ export default function CVCraft() {
     }
   };
 
-  const generatePDF = async () => {
-    setPdfLoading(true);
-    try {
-      // Charger html2canvas + jsPDF
-      const loadScript = (src) => new Promise((res, rej) => {
-        if (document.querySelector(`script[src="${src}"]`)) { res(); return; }
-        const s = document.createElement("script");
-        s.src = src;
-        s.onload = res;
-        s.onerror = rej;
-        document.head.appendChild(s);
-      });
+  const generatePDF = () => {
+    // Construire le HTML complet du CV selon le template
+    const tmpl = TEMPLATES[templateIdx];
+    const ac = tmpl.accent;
+    const light = ac + "22";
 
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+    // Générer le HTML selon le template actif
+    let cvHTML = "";
 
-      // Trouver l'élément de prévisualisation du CV
-      const cvElement = document.getElementById("cv-preview-container");
-      if (!cvElement) throw new Error("Élément CV introuvable");
-
-      // Capturer le CV tel qu'il apparaît visuellement
-      const canvas = await window.html2canvas(cvElement, {
-        scale: 3, // haute résolution
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        logging: false,
-      });
-
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pageW = 210;
-      const pageH = 297;
-      const imgW = pageW;
-      const imgH = (canvas.height * pageW) / canvas.width;
-
-      // Si le CV dépasse une page, on scale pour tout faire tenir
-      if (imgH <= pageH) {
-        doc.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, imgH);
-      } else {
-        // Multi-page : découper en tranches
-        let yPos = 0;
-        let remaining = canvas.height;
-        const pageHeightPx = (pageH * canvas.width) / pageW;
-        let page = 0;
-        while (remaining > 0) {
-          const sliceH = Math.min(pageHeightPx, remaining);
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = sliceH;
-          const ctx = sliceCanvas.getContext("2d");
-          ctx.drawImage(canvas, 0, yPos, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
-          if (page > 0) doc.addPage();
-          const sliceImgH = (sliceH * pageW) / canvas.width;
-          doc.addImage(sliceCanvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, imgW, sliceImgH);
-          yPos += sliceH;
-          remaining -= sliceH;
-          page++;
-        }
-      }
-
-      // Watermark discret si gratuit
-      if (!isPro) {
-        doc.setFontSize(7);
-        doc.setTextColor(200, 200, 200);
-        doc.text("Créé avec CVcraft.app", pageW / 2, pageH - 4, { align: "center" });
-      }
-
-      doc.save(`CV_${data.fname || "CV"}_${data.lname || ""}.pdf`);
-    } catch (e) {
-      console.error("PDF error:", e);
-      alert("Erreur lors de la génération du PDF. Réessaie.");
+    if (templateIdx === 3) {
+      // Executive
+      cvHTML = `
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px 50px;background:#fff;color:#1a1a1a;">
+          <div style="border-bottom:2px solid #1a1a1a;padding-bottom:16px;margin-bottom:24px;">
+            <h1 style="font-size:28px;font-weight:700;margin:0;letter-spacing:-0.02em;">${data.fname} ${data.lname}</h1>
+            <p style="font-size:12px;color:#555;margin:6px 0 0;letter-spacing:0.05em;text-transform:uppercase;">${data.jobTitle||""}</p>
+            <p style="font-size:11px;color:#888;margin:8px 0 0;">${[data.email,data.phone,data.city,data.website].filter(Boolean).join("  |  ")}</p>
+          </div>
+          ${data.about ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Profil Professionnel</h2><p style="font-size:12px;line-height:1.8;color:#333;">${data.about}</p></div>` : ""}
+          ${data.experience.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Expérience Professionnelle</h2>${data.experience.map(e=>`<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.role||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:#555;font-style:italic;margin:2px 0;">${e.company||""}</div>${e.desc?`<div style="font-size:11.5px;color:#444;line-height:1.7;margin-top:4px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
+          ${data.education.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Formation</h2>${data.education.map(e=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.degree||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:#555;font-style:italic;">${e.school||""}</div>${e.desc?`<div style="font-size:11px;color:#666;margin-top:3px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
+          ${data.skills.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Compétences</h2><p style="font-size:12px;color:#444;line-height:2;">${data.skills.join("  ·  ")}</p></div>` : ""}
+          ${data.languages.length > 0 ? `<div><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Langues</h2><p style="font-size:12px;color:#444;">${data.languages.map(l=>`${l.name}${l.level?" ("+l.level+")":""}`).join("  ·  ")}</p></div>` : ""}
+          ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;margin-top:40px;border-top:0.5px solid #eee;padding-top:10px;">Créé avec CVcraft.app — Passez au Pro pour supprimer ce watermark</p>` : ""}
+        </div>`;
+    } else if (templateIdx === 4) {
+      // Consulting
+      cvHTML = `
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;background:#fff;">
+          <div style="background:#0D1B2A;padding:36px 48px 28px;color:#fff;">
+            <h1 style="font-size:28px;font-weight:800;margin:0;letter-spacing:-0.02em;">${data.fname} ${data.lname}</h1>
+            <p style="font-size:11px;color:rgba(255,255,255,0.6);margin:8px 0 0;letter-spacing:0.1em;text-transform:uppercase;">${data.jobTitle||""}</p>
+            <div style="border-top:0.5px solid rgba(255,255,255,0.15);margin-top:16px;padding-top:12px;font-size:11px;color:rgba(255,255,255,0.55);">${[data.email,data.phone,data.city].filter(Boolean).join("  ·  ")}</div>
+          </div>
+          <div style="padding:32px 48px;">
+            ${data.about ? `<div style="margin-bottom:22px;padding:14px 18px;background:#E8F0FE;border-left:3px solid #2D6BE4;border-radius:0 4px 4px 0;font-size:12px;line-height:1.8;color:#333;">${data.about}</div>` : ""}
+            ${data.experience.length > 0 ? `<div style="margin-bottom:22px;"><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;">Parcours Professionnel</h2>${data.experience.map(e=>`<div style="margin-bottom:14px;padding-left:16px;border-left:2px solid #2D6BE4;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D1B2A;">${e.role||""}</span><span style="font-size:11px;color:#999;">${e.date||""}</span></div><div style="font-size:12px;color:#2D6BE4;margin:2px 0;">${e.company||""}</div>${e.desc?`<div style="font-size:11px;color:#555;line-height:1.7;margin-top:4px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
+            ${data.education.length > 0 ? `<div style="margin-bottom:22px;"><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;">Formation Académique</h2>${data.education.map(e=>`<div style="margin-bottom:12px;padding-left:16px;border-left:2px solid #ddd;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D1B2A;">${e.degree||""}</span><span style="font-size:11px;color:#999;">${e.date||""}</span></div><div style="font-size:12px;color:#555;">${e.school||""}</div></div>`).join("")}</div>` : ""}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+              ${data.skills.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;">Expertises</h2>${data.skills.map(s=>`<div style="font-size:12px;color:#333;margin-bottom:5px;padding-left:10px;border-left:1px solid #ddd;">${s}</div>`).join("")}</div>` : ""}
+              ${data.languages.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;">Langues</h2>${data.languages.map(l=>`<div style="margin-bottom:8px;"><div style="font-size:13px;font-weight:600;color:#0D1B2A;">${l.name}</div>${l.level?`<div style="font-size:11px;color:#888;">${l.level}</div>`:""}</div>`).join("")}</div>` : ""}
+            </div>
+          </div>
+          ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;padding:10px;border-top:0.5px solid #eee;">Créé avec CVcraft.app</p>` : ""}
+        </div>`;
+    } else if (templateIdx === 5) {
+      // Tech Elite
+      cvHTML = `
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;background:#FAFAFA;">
+          <div style="background:#fff;padding:32px 48px 24px;border-bottom:0.5px solid #E8E8E8;">
+            <div style="display:flex;align-items:center;gap:18px;">
+              <div style="width:52px;height:52px;border-radius:50%;background:#0D2B1A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;">${(data.fname||"?")[0]}${(data.lname||"")[0]}</div>
+              <div><h1 style="font-size:22px;font-weight:700;color:#0D2B1A;margin:0;">${data.fname} ${data.lname}</h1><p style="font-size:12px;color:#555;margin:4px 0 0;">${data.jobTitle||""}</p></div>
+            </div>
+            <div style="font-size:11px;color:#777;margin-top:14px;">${[data.email,data.phone,data.city].filter(Boolean).join("  ·  ")}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:0;">
+            <div style="padding:28px 24px 28px 48px;background:#fff;border-right:0.5px solid #E8E8E8;">
+              ${data.about ? `<div style="margin-bottom:20px;"><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Profil</h2><p style="font-size:12px;line-height:1.8;color:#444;">${data.about}</p></div>` : ""}
+              ${data.experience.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;">Expérience</h2>${data.experience.map(e=>`<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D2B1A;">${e.role||""}</span><span style="font-size:10px;color:#aaa;">${e.date||""}</span></div><div style="font-size:12px;color:#00854A;font-weight:500;margin:2px 0;">${e.company||""}</div>${e.desc?`<div style="font-size:11px;color:#555;line-height:1.7;margin-top:3px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
+              ${data.education.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;">Formation</h2>${data.education.map(e=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D2B1A;">${e.degree||""}</span><span style="font-size:10px;color:#aaa;">${e.date||""}</span></div><div style="font-size:12px;color:#777;">${e.school||""}</div></div>`).join("")}</div>` : ""}
+            </div>
+            <div style="padding:28px 40px 28px 24px;background:#FAFAFA;">
+              ${data.skills.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Compétences</h2>${data.skills.map(s=>`<div style="font-size:12px;color:#333;margin-bottom:6px;display:flex;align-items:center;gap:8px;"><span style="width:4px;height:4px;border-radius:50%;background:#00854A;display:inline-block;flex-shrink:0;"></span>${s}</div>`).join("")}</div>` : ""}
+              ${data.languages.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Langues</h2>${data.languages.map(l=>`<div style="margin-bottom:8px;"><div style="font-size:13px;font-weight:600;color:#0D2B1A;">${l.name}</div>${l.level?`<div style="font-size:11px;color:#888;">${l.level}</div>`:""}</div>`).join("")}</div>` : ""}
+            </div>
+          </div>
+          ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;padding:10px;border-top:0.5px solid #eee;">Créé avec CVcraft.app</p>` : ""}
+        </div>`;
+    } else {
+      // Templates gratuits (0,1,2) — layout avec couleur accent
+      const sidebarColor = tmpl.sidebar;
+      cvHTML = `
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;background:#fff;">
+          <div style="background:${sidebarColor};padding:30px 40px;color:#fff;">
+            <h1 style="font-size:24px;font-weight:700;margin:0;">${data.fname} ${data.lname}</h1>
+            <p style="font-size:11px;color:rgba(255,255,255,0.8);margin:6px 0 0;text-transform:uppercase;letter-spacing:0.08em;">${data.jobTitle||""}</p>
+            <p style="font-size:10px;color:rgba(255,255,255,0.65);margin:10px 0 0;">${[data.email,data.phone,data.city].filter(Boolean).join("  |  ")}</p>
+          </div>
+          <div style="padding:28px 40px;">
+            ${data.about ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:8px;">Profil</h2><p style="font-size:12px;line-height:1.8;color:#333;">${data.about}</p></div>` : ""}
+            ${data.experience.length > 0 ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:10px;">Expérience</h2>${data.experience.map(e=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.role||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:${ac};">${e.company||""}</div>${e.desc?`<div style="font-size:11px;color:#555;line-height:1.7;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
+            ${data.education.length > 0 ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:10px;">Formation</h2>${data.education.map(e=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.degree||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:#555;">${e.school||""}</div></div>`).join("")}</div>` : ""}
+            ${data.skills.length > 0 ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:8px;">Compétences</h2><p style="font-size:12px;color:#444;line-height:2;">${data.skills.join("  ·  ")}</p></div>` : ""}
+            ${data.languages.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:8px;">Langues</h2><p style="font-size:12px;color:#444;">${data.languages.map(l=>`${l.name}${l.level?" ("+l.level+")":""}`).join("  ·  ")}</p></div>` : ""}
+            ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;margin-top:30px;border-top:0.5px solid #eee;padding-top:10px;">Créé avec CVcraft.app — Pro pour supprimer</p>` : ""}
+          </div>
+        </div>`;
     }
+
+    // Ouvrir une nouvelle fenêtre avec le HTML du CV et lancer l'impression
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Autorise les popups pour télécharger ton CV en PDF");
+      return;
+    }
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CV ${data.fname} ${data.lname}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #fff; }
+    @media print {
+      @page { margin: 0; size: A4; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  ${cvHTML}
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+        window.onafterprint = function() { window.close(); };
+      }, 500);
+    };
+  </script>
+</body>
+</html>`);
+
+    printWindow.document.close();
     setPdfLoading(false);
-  };
+  };;
 
   const t = translations[lang];
 
