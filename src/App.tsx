@@ -968,133 +968,106 @@ export default function CVCraft() {
   };
 
   const generatePDF = () => {
-    // Construire le HTML complet du CV selon le template
-    const tmpl = TEMPLATES[templateIdx];
-    const ac = tmpl.accent;
-    const light = ac + "22";
-
-    // Générer le HTML selon le template actif
-    let cvHTML = "";
-
-    if (templateIdx === 3) {
-      // Executive
-      cvHTML = `
-        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;padding:40px 50px;background:#fff;color:#1a1a1a;">
-          <div style="border-bottom:2px solid #1a1a1a;padding-bottom:16px;margin-bottom:24px;">
-            <h1 style="font-size:28px;font-weight:700;margin:0;letter-spacing:-0.02em;">${data.fname} ${data.lname}</h1>
-            <p style="font-size:12px;color:#555;margin:6px 0 0;letter-spacing:0.05em;text-transform:uppercase;">${data.jobTitle||""}</p>
-            <p style="font-size:11px;color:#888;margin:8px 0 0;">${[data.email,data.phone,data.city,data.website].filter(Boolean).join("  |  ")}</p>
-          </div>
-          ${data.about ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Profil Professionnel</h2><p style="font-size:12px;line-height:1.8;color:#333;">${data.about}</p></div>` : ""}
-          ${data.experience.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Expérience Professionnelle</h2>${data.experience.map(e=>`<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.role||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:#555;font-style:italic;margin:2px 0;">${e.company||""}</div>${e.desc?`<div style="font-size:11.5px;color:#444;line-height:1.7;margin-top:4px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
-          ${data.education.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Formation</h2>${data.education.map(e=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.degree||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:#555;font-style:italic;">${e.school||""}</div>${e.desc?`<div style="font-size:11px;color:#666;margin-top:3px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
-          ${data.skills.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Compétences</h2><p style="font-size:12px;color:#444;line-height:2;">${data.skills.join("  ·  ")}</p></div>` : ""}
-          ${data.languages.length > 0 ? `<div><h2 style="font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;border-bottom:0.5px solid #ddd;padding-bottom:4px;margin-bottom:10px;">Langues</h2><p style="font-size:12px;color:#444;">${data.languages.map(l=>`${l.name}${l.level?" ("+l.level+")":""}`).join("  ·  ")}</p></div>` : ""}
-          ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;margin-top:40px;border-top:0.5px solid #eee;padding-top:10px;">Créé avec CVcraft.app — Passez au Pro pour supprimer ce watermark</p>` : ""}
-        </div>`;
-    } else if (templateIdx === 4) {
-      // Consulting
-      cvHTML = `
-        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;background:#fff;">
-          <div style="background:#0D1B2A;padding:36px 48px 28px;color:#fff;">
-            <h1 style="font-size:28px;font-weight:800;margin:0;letter-spacing:-0.02em;">${data.fname} ${data.lname}</h1>
-            <p style="font-size:11px;color:rgba(255,255,255,0.6);margin:8px 0 0;letter-spacing:0.1em;text-transform:uppercase;">${data.jobTitle||""}</p>
-            <div style="border-top:0.5px solid rgba(255,255,255,0.15);margin-top:16px;padding-top:12px;font-size:11px;color:rgba(255,255,255,0.55);">${[data.email,data.phone,data.city].filter(Boolean).join("  ·  ")}</div>
-          </div>
-          <div style="padding:32px 48px;">
-            ${data.about ? `<div style="margin-bottom:22px;padding:14px 18px;background:#E8F0FE;border-left:3px solid #2D6BE4;border-radius:0 4px 4px 0;font-size:12px;line-height:1.8;color:#333;">${data.about}</div>` : ""}
-            ${data.experience.length > 0 ? `<div style="margin-bottom:22px;"><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;">Parcours Professionnel</h2>${data.experience.map(e=>`<div style="margin-bottom:14px;padding-left:16px;border-left:2px solid #2D6BE4;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D1B2A;">${e.role||""}</span><span style="font-size:11px;color:#999;">${e.date||""}</span></div><div style="font-size:12px;color:#2D6BE4;margin:2px 0;">${e.company||""}</div>${e.desc?`<div style="font-size:11px;color:#555;line-height:1.7;margin-top:4px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
-            ${data.education.length > 0 ? `<div style="margin-bottom:22px;"><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:14px;">Formation Académique</h2>${data.education.map(e=>`<div style="margin-bottom:12px;padding-left:16px;border-left:2px solid #ddd;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D1B2A;">${e.degree||""}</span><span style="font-size:11px;color:#999;">${e.date||""}</span></div><div style="font-size:12px;color:#555;">${e.school||""}</div></div>`).join("")}</div>` : ""}
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-              ${data.skills.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;">Expertises</h2>${data.skills.map(s=>`<div style="font-size:12px;color:#333;margin-bottom:5px;padding-left:10px;border-left:1px solid #ddd;">${s}</div>`).join("")}</div>` : ""}
-              ${data.languages.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D1B2A;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;">Langues</h2>${data.languages.map(l=>`<div style="margin-bottom:8px;"><div style="font-size:13px;font-weight:600;color:#0D1B2A;">${l.name}</div>${l.level?`<div style="font-size:11px;color:#888;">${l.level}</div>`:""}</div>`).join("")}</div>` : ""}
-            </div>
-          </div>
-          ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;padding:10px;border-top:0.5px solid #eee;">Créé avec CVcraft.app</p>` : ""}
-        </div>`;
-    } else if (templateIdx === 5) {
-      // Tech Elite
-      cvHTML = `
-        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;background:#FAFAFA;">
-          <div style="background:#fff;padding:32px 48px 24px;border-bottom:0.5px solid #E8E8E8;">
-            <div style="display:flex;align-items:center;gap:18px;">
-              <div style="width:52px;height:52px;border-radius:50%;background:#0D2B1A;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;">${(data.fname||"?")[0]}${(data.lname||"")[0]}</div>
-              <div><h1 style="font-size:22px;font-weight:700;color:#0D2B1A;margin:0;">${data.fname} ${data.lname}</h1><p style="font-size:12px;color:#555;margin:4px 0 0;">${data.jobTitle||""}</p></div>
-            </div>
-            <div style="font-size:11px;color:#777;margin-top:14px;">${[data.email,data.phone,data.city].filter(Boolean).join("  ·  ")}</div>
-          </div>
-          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:0;">
-            <div style="padding:28px 24px 28px 48px;background:#fff;border-right:0.5px solid #E8E8E8;">
-              ${data.about ? `<div style="margin-bottom:20px;"><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px;">Profil</h2><p style="font-size:12px;line-height:1.8;color:#444;">${data.about}</p></div>` : ""}
-              ${data.experience.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;">Expérience</h2>${data.experience.map(e=>`<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D2B1A;">${e.role||""}</span><span style="font-size:10px;color:#aaa;">${e.date||""}</span></div><div style="font-size:12px;color:#00854A;font-weight:500;margin:2px 0;">${e.company||""}</div>${e.desc?`<div style="font-size:11px;color:#555;line-height:1.7;margin-top:3px;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
-              ${data.education.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:12px;">Formation</h2>${data.education.map(e=>`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#0D2B1A;">${e.degree||""}</span><span style="font-size:10px;color:#aaa;">${e.date||""}</span></div><div style="font-size:12px;color:#777;">${e.school||""}</div></div>`).join("")}</div>` : ""}
-            </div>
-            <div style="padding:28px 40px 28px 24px;background:#FAFAFA;">
-              ${data.skills.length > 0 ? `<div style="margin-bottom:20px;"><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Compétences</h2>${data.skills.map(s=>`<div style="font-size:12px;color:#333;margin-bottom:6px;display:flex;align-items:center;gap:8px;"><span style="width:4px;height:4px;border-radius:50%;background:#00854A;display:inline-block;flex-shrink:0;"></span>${s}</div>`).join("")}</div>` : ""}
-              ${data.languages.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:#0D2B1A;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10px;">Langues</h2>${data.languages.map(l=>`<div style="margin-bottom:8px;"><div style="font-size:13px;font-weight:600;color:#0D2B1A;">${l.name}</div>${l.level?`<div style="font-size:11px;color:#888;">${l.level}</div>`:""}</div>`).join("")}</div>` : ""}
-            </div>
-          </div>
-          ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;padding:10px;border-top:0.5px solid #eee;">Créé avec CVcraft.app</p>` : ""}
-        </div>`;
-    } else {
-      // Templates gratuits (0,1,2) — layout avec couleur accent
-      const sidebarColor = tmpl.sidebar;
-      cvHTML = `
-        <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:800px;margin:0 auto;background:#fff;">
-          <div style="background:${sidebarColor};padding:30px 40px;color:#fff;">
-            <h1 style="font-size:24px;font-weight:700;margin:0;">${data.fname} ${data.lname}</h1>
-            <p style="font-size:11px;color:rgba(255,255,255,0.8);margin:6px 0 0;text-transform:uppercase;letter-spacing:0.08em;">${data.jobTitle||""}</p>
-            <p style="font-size:10px;color:rgba(255,255,255,0.65);margin:10px 0 0;">${[data.email,data.phone,data.city].filter(Boolean).join("  |  ")}</p>
-          </div>
-          <div style="padding:28px 40px;">
-            ${data.about ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:8px;">Profil</h2><p style="font-size:12px;line-height:1.8;color:#333;">${data.about}</p></div>` : ""}
-            ${data.experience.length > 0 ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:10px;">Expérience</h2>${data.experience.map(e=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.role||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:${ac};">${e.company||""}</div>${e.desc?`<div style="font-size:11px;color:#555;line-height:1.7;">${e.desc}</div>`:""}</div>`).join("")}</div>` : ""}
-            ${data.education.length > 0 ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:10px;">Formation</h2>${data.education.map(e=>`<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;">${e.degree||""}</span><span style="font-size:11px;color:#888;">${e.date||""}</span></div><div style="font-size:12px;color:#555;">${e.school||""}</div></div>`).join("")}</div>` : ""}
-            ${data.skills.length > 0 ? `<div style="margin-bottom:18px;"><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:8px;">Compétences</h2><p style="font-size:12px;color:#444;line-height:2;">${data.skills.join("  ·  ")}</p></div>` : ""}
-            ${data.languages.length > 0 ? `<div><h2 style="font-size:9px;font-weight:700;color:${ac};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1.5px solid ${light};padding-bottom:4px;margin-bottom:8px;">Langues</h2><p style="font-size:12px;color:#444;">${data.languages.map(l=>`${l.name}${l.level?" ("+l.level+")":""}`).join("  ·  ")}</p></div>` : ""}
-            ${!isPro ? `<p style="font-size:9px;color:#ccc;text-align:center;margin-top:30px;border-top:0.5px solid #eee;padding-top:10px;">Créé avec CVcraft.app — Pro pour supprimer</p>` : ""}
-          </div>
-        </div>`;
-    }
-
-    // Ouvrir une nouvelle fenêtre avec le HTML du CV et lancer l'impression
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      alert("Autorise les popups pour télécharger ton CV en PDF");
+    setPdfLoading(true);
+    
+    // Récupérer le HTML exact du CV tel qu'il apparaît dans l'aperçu
+    const cvEl = document.getElementById("cv-preview-container");
+    if (!cvEl) {
+      alert("Erreur: aperçu introuvable");
+      setPdfLoading(false);
       return;
     }
+
+    // Cloner le noeud pour le rendre en taille réelle
+    const clone = cvEl.cloneNode(true);
+    
+    // Récupérer tous les styles CSS appliqués
+    const allStyles = Array.from(document.styleSheets)
+      .flatMap(sheet => {
+        try { return Array.from(sheet.cssRules).map(r => r.cssText); }
+        catch { return []; }
+      }).join("\n");
+
+    const printWindow = window.open("", "_blank", "width=900,height=700");
+    if (!printWindow) {
+      alert("Autorise les popups pour télécharger le PDF");
+      setPdfLoading(false);
+      return;
+    }
+
+    // Extraire le innerHTML du clone avec les styles inline
+    const cvContent = clone.innerHTML;
+    const outerStyle = clone.getAttribute("style") || "";
 
     printWindow.document.write(`<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CV ${data.fname} ${data.lname}</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #fff; }
-    @media print {
-      @page { margin: 0; size: A4; }
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    html, body {
+      width: 210mm;
+      background: #fff;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
     }
+
+    body {
+      padding: 0;
+      margin: 0;
+    }
+
+    .cv-wrapper {
+      width: 210mm;
+      min-height: 297mm;
+      background: #fff;
+      position: relative;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      html, body {
+        width: 210mm;
+        height: 297mm;
+      }
+      body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+      }
+      .no-print { display: none !important; }
+    }
+
+    ${allStyles}
   </style>
 </head>
 <body>
-  ${cvHTML}
+  <div class="cv-wrapper" style="${outerStyle.replace(/max-width:[^;]+;?/g, '').replace(/width:[^;]+;?/g, '')}; width: 210mm; max-width: 210mm;">
+    ${cvContent}
+  </div>
   <script>
-    window.onload = function() {
+    // Attendre que les fonts et images chargent
+    window.addEventListener('load', function() {
       setTimeout(function() {
         window.print();
-        window.onafterprint = function() { window.close(); };
-      }, 500);
-    };
+        window.onafterprint = function() {
+          window.close();
+        };
+      }, 800);
+    });
   </script>
 </body>
 </html>`);
 
     printWindow.document.close();
     setPdfLoading(false);
-  };;
+  };
+
+;
 
   const t = translations[lang];
 
