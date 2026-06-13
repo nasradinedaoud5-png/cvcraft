@@ -969,35 +969,170 @@ export default function CVCraft() {
 
   const generatePDF = () => {
     setPdfLoading(true);
-    
-    // Récupérer le HTML exact du CV tel qu'il apparaît dans l'aperçu
-    const cvEl = document.getElementById("cv-preview-container");
-    if (!cvEl) {
-      alert("Erreur: aperçu introuvable");
-      setPdfLoading(false);
-      return;
-    }
+    const tmpl = TEMPLATES[templateIdx];
+    const ac = tmpl.accent;
 
-    // Cloner le noeud pour le rendre en taille réelle
-    const clone = cvEl.cloneNode(true);
-    
-    // Récupérer tous les styles CSS appliqués
-    const allStyles = Array.from(document.styleSheets)
-      .flatMap(sheet => {
-        try { return Array.from(sheet.cssRules).map(r => r.cssText); }
-        catch { return []; }
-      }).join("\n");
+    // Builder HTML A4 complet selon le template actif
+    const buildHTML = () => {
+      // Sections réutilisables
+      const secTitle = (txt, color="#1a1a1a") =>
+        `<div style="font-size:9pt;font-weight:700;color:${color};letter-spacing:0.12em;text-transform:uppercase;border-bottom:1px solid ${color}22;padding-bottom:4pt;margin:16pt 0 8pt;">${txt}</div>`;
 
+      const expBlock = (e, accentColor) =>
+        `<div style="margin-bottom:12pt;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-size:11pt;font-weight:700;color:#1a1a1a;">${e.role||e.degree||""}</span>
+            <span style="font-size:9pt;color:#888;white-space:nowrap;margin-left:8pt;">${e.date||""}</span>
+          </div>
+          <div style="font-size:10pt;color:${accentColor};margin:2pt 0 3pt;">${e.company||e.school||""}</div>
+          ${e.desc?`<div style="font-size:9.5pt;color:#444;line-height:1.7;">${e.desc}</div>`:""}
+        </div>`;
+
+      if (templateIdx === 0 || templateIdx === 1 || templateIdx === 2) {
+        // Templates Sidebar — layout 2 colonnes avec sidebar colorée
+        return `
+          <div style="display:flex;min-height:297mm;font-family:'Helvetica Neue',Arial,sans-serif;">
+            <!-- Sidebar -->
+            <div style="width:35%;background:${tmpl.sidebar};padding:28pt 18pt;color:#fff;flex-shrink:0;">
+              <div style="width:64pt;height:64pt;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:22pt;font-weight:700;color:#fff;margin:0 auto 14pt;border:2pt solid rgba(255,255,255,0.4);">
+                ${(data.fname||"?")[0]}${(data.lname||"")[0]}
+              </div>
+              <div style="text-align:center;margin-bottom:16pt;">
+                <div style="font-size:14pt;font-weight:700;color:#fff;line-height:1.2;">${data.fname} ${data.lname}</div>
+                <div style="font-size:8.5pt;color:rgba(255,255,255,0.8);margin-top:4pt;">${data.jobTitle||""}</div>
+              </div>
+              <div style="border-top:0.5pt solid rgba(255,255,255,0.3);padding-top:12pt;margin-bottom:14pt;">
+                ${[data.email,data.phone,data.city,data.website].filter(Boolean).map(c=>`<div style="font-size:8pt;color:rgba(255,255,255,0.85);margin-bottom:5pt;word-break:break-all;">${c}</div>`).join("")}
+              </div>
+              ${data.skills.length>0?`
+                <div style="margin-bottom:14pt;">
+                  <div style="font-size:8pt;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8pt;">Skills</div>
+                  ${data.skills.map(s=>`<div style="font-size:9pt;color:#fff;margin-bottom:5pt;display:flex;align-items:center;gap:6pt;"><span style="width:4pt;height:4pt;border-radius:50%;background:rgba(255,255,255,0.5);display:inline-block;flex-shrink:0;"></span>${s}</div>`).join("")}
+                </div>`:""}
+              ${data.languages.length>0?`
+                <div>
+                  <div style="font-size:8pt;font-weight:700;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8pt;">Langues</div>
+                  ${data.languages.map(l=>`<div style="margin-bottom:6pt;"><span style="font-size:9.5pt;font-weight:600;color:#fff;">${l.name}</span>${l.level?`<span style="font-size:8pt;color:rgba(255,255,255,0.7);"> · ${l.level}</span>`:""}</div>`).join("")}
+                </div>`:""}
+            </div>
+            <!-- Contenu principal -->
+            <div style="flex:1;padding:28pt 32pt;background:#fff;">
+              ${data.about?`${secTitle("À Propos",ac)}<div style="font-size:10pt;color:#333;line-height:1.8;margin-bottom:4pt;">${data.about}</div>`:""}
+              ${data.education.length>0?`${secTitle("Formation",ac)}${data.education.map(e=>expBlock(e,ac)).join("")}`:""}
+              ${data.experience.length>0?`${secTitle("Expérience",ac)}${data.experience.map(e=>expBlock(e,ac)).join("")}`:""}
+            </div>
+          </div>`;
+      }
+
+      if (templateIdx === 3) {
+        // Executive — une colonne, très sobre
+        return `
+          <div style="font-family:'Helvetica Neue',Arial,sans-serif;padding:40pt 50pt;background:#fff;min-height:297mm;">
+            <div style="border-bottom:2pt solid #1a1a1a;padding-bottom:14pt;margin-bottom:20pt;">
+              <h1 style="font-size:26pt;font-weight:700;color:#1a1a1a;letter-spacing:-0.02em;margin:0 0 6pt;">${data.fname} ${data.lname}</h1>
+              <div style="font-size:10pt;color:#555;letter-spacing:0.06em;text-transform:uppercase;">${data.jobTitle||""}</div>
+              <div style="font-size:9pt;color:#888;margin-top:8pt;">${[data.email,data.phone,data.city,data.website].filter(Boolean).join("  |  ")}</div>
+            </div>
+            ${data.about?`${secTitle("Profil Professionnel")}<p style="font-size:10.5pt;color:#333;line-height:1.9;margin-bottom:16pt;">${data.about}</p>`:""}
+            ${data.experience.length>0?`${secTitle("Expérience Professionnelle")}${data.experience.map(e=>`
+              <div style="margin-bottom:14pt;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:12pt;font-weight:700;color:#1a1a1a;">${e.role||""}</span><span style="font-size:9pt;color:#888;">${e.date||""}</span></div>
+                <div style="font-size:10.5pt;color:#555;font-style:italic;margin:3pt 0;">${e.company||""}</div>
+                ${e.desc?`<div style="font-size:10pt;color:#444;line-height:1.7;">${e.desc}</div>`:""}
+              </div>`).join("")}`:""}
+            ${data.education.length>0?`${secTitle("Formation")}${data.education.map(e=>`
+              <div style="margin-bottom:12pt;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:12pt;font-weight:700;color:#1a1a1a;">${e.degree||""}</span><span style="font-size:9pt;color:#888;">${e.date||""}</span></div>
+                <div style="font-size:10.5pt;color:#555;font-style:italic;">${e.school||""}</div>
+                ${e.desc?`<div style="font-size:10pt;color:#666;margin-top:3pt;">${e.desc}</div>`:""}
+              </div>`).join("")}`:""}
+            ${data.skills.length>0?`${secTitle("Compétences")}<p style="font-size:10.5pt;color:#444;line-height:2.2;">${data.skills.join("  ·  ")}</p>`:""}
+            ${data.languages.length>0?`${secTitle("Langues")}<p style="font-size:10.5pt;color:#444;">${data.languages.map(l=>`${l.name}${l.level?" ("+l.level+")":""}`).join("  ·  ")}</p>`:""}
+            ${!isPro?`<p style="font-size:8pt;color:#ccc;text-align:center;margin-top:40pt;border-top:0.5pt solid #eee;padding-top:8pt;">Créé avec CVcraft.app</p>`:""}
+          </div>`;
+      }
+
+      if (templateIdx === 4) {
+        // Consulting — bandeau navy
+        const navy = "#0D1B2A", blue = "#2D6BE4";
+        return `
+          <div style="font-family:'Helvetica Neue',Arial,sans-serif;min-height:297mm;background:#fff;">
+            <div style="background:${navy};padding:32pt 44pt 24pt;color:#fff;">
+              <h1 style="font-size:26pt;font-weight:800;color:#fff;letter-spacing:-0.025em;margin:0 0 6pt;">${data.fname} ${data.lname}</h1>
+              <div style="font-size:9pt;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;">${data.jobTitle||""}</div>
+              <div style="border-top:0.5pt solid rgba(255,255,255,0.15);margin-top:14pt;padding-top:10pt;font-size:9pt;color:rgba(255,255,255,0.5);">${[data.email,data.phone,data.city].filter(Boolean).join("  ·  ")}</div>
+            </div>
+            <div style="padding:28pt 44pt;">
+              ${data.about?`<div style="background:#E8F0FE;border-left:3pt solid ${blue};padding:12pt 16pt;margin-bottom:20pt;font-size:10.5pt;line-height:1.8;color:#333;">${data.about}</div>`:""}
+              ${data.experience.length>0?`
+                <div style="margin-bottom:20pt;">
+                  <div style="font-size:8pt;font-weight:700;color:${navy};letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12pt;">${"— Parcours Professionnel"}</div>
+                  ${data.experience.map(e=>`<div style="margin-bottom:14pt;padding-left:14pt;border-left:2pt solid ${blue};">
+                    <div style="display:flex;justify-content:space-between;"><span style="font-size:12pt;font-weight:700;color:${navy};">${e.role||""}</span><span style="font-size:9pt;color:#999;">${e.date||""}</span></div>
+                    <div style="font-size:10pt;color:${blue};margin:2pt 0;">${e.company||""}</div>
+                    ${e.desc?`<div style="font-size:9.5pt;color:#555;line-height:1.7;">${e.desc}</div>`:""}
+                  </div>`).join("")}
+                </div>`:""}
+              ${data.education.length>0?`
+                <div style="margin-bottom:20pt;">
+                  <div style="font-size:8pt;font-weight:700;color:${navy};letter-spacing:0.14em;text-transform:uppercase;margin-bottom:12pt;">— Formation Académique</div>
+                  ${data.education.map(e=>`<div style="margin-bottom:12pt;padding-left:14pt;border-left:2pt solid #ddd;">
+                    <div style="display:flex;justify-content:space-between;"><span style="font-size:12pt;font-weight:700;color:${navy};">${e.degree||""}</span><span style="font-size:9pt;color:#999;">${e.date||""}</span></div>
+                    <div style="font-size:10pt;color:#555;">${e.school||""}</div>
+                  </div>`).join("")}
+                </div>`:""}
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:24pt;">
+                ${data.skills.length>0?`<div><div style="font-size:8pt;font-weight:700;color:${navy};letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10pt;">Expertises</div>${data.skills.map(s=>`<div style="font-size:10pt;color:#333;margin-bottom:6pt;padding-left:10pt;border-left:1pt solid #ddd;">${s}</div>`).join("")}</div>`:""}
+                ${data.languages.length>0?`<div><div style="font-size:8pt;font-weight:700;color:${navy};letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10pt;">Langues</div>${data.languages.map(l=>`<div style="margin-bottom:8pt;"><div style="font-size:11pt;font-weight:600;color:${navy};">${l.name}</div>${l.level?`<div style="font-size:9pt;color:#888;">${l.level}</div>`:""}</div>`).join("")}</div>`:""}
+              </div>
+            </div>
+            ${!isPro?`<p style="font-size:8pt;color:#ccc;text-align:center;padding:8pt;border-top:0.5pt solid #eee;">Créé avec CVcraft.app</p>`:""}
+          </div>`;
+      }
+
+      // Tech Elite (templateIdx === 5)
+      const green = "#00854A", darkGreen = "#0D2B1A";
+      return `
+        <div style="font-family:'Helvetica Neue',Arial,sans-serif;min-height:297mm;background:#FAFAFA;">
+          <div style="background:#fff;padding:28pt 44pt 20pt;border-bottom:0.5pt solid #E8E8E8;">
+            <div style="display:flex;align-items:center;gap:16pt;">
+              <div style="width:52pt;height:52pt;border-radius:50%;background:${darkGreen};display:flex;align-items:center;justify-content:center;font-size:18pt;font-weight:700;color:#fff;flex-shrink:0;">${(data.fname||"?")[0]}${(data.lname||"")[0]}</div>
+              <div>
+                <h1 style="font-size:22pt;font-weight:700;color:${darkGreen};margin:0;">${data.fname} ${data.lname}</h1>
+                <div style="font-size:10pt;color:#555;margin-top:4pt;">${data.jobTitle||""}</div>
+              </div>
+            </div>
+            <div style="font-size:9pt;color:#777;margin-top:12pt;">${[data.email,data.phone,data.city].filter(Boolean).join("  ·  ")}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;">
+            <div style="padding:24pt 20pt 24pt 44pt;background:#fff;border-right:0.5pt solid #E8E8E8;">
+              ${data.about?`<div style="margin-bottom:18pt;"><div style="font-size:8pt;font-weight:700;color:${darkGreen};letter-spacing:0.12em;text-transform:uppercase;margin-bottom:7pt;">Profil</div><p style="font-size:10.5pt;line-height:1.8;color:#444;">${data.about}</p></div>`:""}
+              ${data.experience.length>0?`<div style="margin-bottom:18pt;"><div style="font-size:8pt;font-weight:700;color:${darkGreen};letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10pt;">Expérience</div>${data.experience.map(e=>`<div style="margin-bottom:13pt;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:11.5pt;font-weight:700;color:${darkGreen};">${e.role||""}</span><span style="font-size:8.5pt;color:#aaa;">${e.date||""}</span></div>
+                <div style="font-size:10pt;color:${green};font-weight:500;margin:2pt 0;">${e.company||""}</div>
+                ${e.desc?`<div style="font-size:9.5pt;color:#555;line-height:1.7;">${e.desc}</div>`:""}
+              </div>`).join("")}</div>`:""}
+              ${data.education.length>0?`<div><div style="font-size:8pt;font-weight:700;color:${darkGreen};letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10pt;">Formation</div>${data.education.map(e=>`<div style="margin-bottom:10pt;">
+                <div style="display:flex;justify-content:space-between;"><span style="font-size:11.5pt;font-weight:700;color:${darkGreen};">${e.degree||""}</span><span style="font-size:8.5pt;color:#aaa;">${e.date||""}</span></div>
+                <div style="font-size:10pt;color:#777;">${e.school||""}</div>
+              </div>`).join("")}</div>`:""}
+            </div>
+            <div style="padding:24pt 36pt 24pt 20pt;background:#FAFAFA;">
+              ${data.skills.length>0?`<div style="margin-bottom:18pt;"><div style="font-size:8pt;font-weight:700;color:${darkGreen};letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10pt;">Compétences</div>${data.skills.map(s=>`<div style="font-size:10pt;color:#333;margin-bottom:6pt;display:flex;align-items:flex-start;gap:7pt;"><span style="width:4pt;height:4pt;border-radius:50%;background:${green};margin-top:4pt;display:inline-block;flex-shrink:0;"></span>${s}</div>`).join("")}</div>`:""}
+              ${data.languages.length>0?`<div><div style="font-size:8pt;font-weight:700;color:${darkGreen};letter-spacing:0.12em;text-transform:uppercase;margin-bottom:10pt;">Langues</div>${data.languages.map(l=>`<div style="margin-bottom:8pt;"><div style="font-size:11pt;font-weight:600;color:${darkGreen};">${l.name}</div>${l.level?`<div style="font-size:9pt;color:#888;">${l.level}</div>`:""}</div>`).join("")}</div>`:""}
+            </div>
+          </div>
+          ${!isPro?`<p style="font-size:8pt;color:#ccc;text-align:center;padding:8pt;border-top:0.5pt solid #eee;">Créé avec CVcraft.app</p>`:""}
+        </div>`;
+    };
+
+    const cvHTML = buildHTML();
     const printWindow = window.open("", "_blank", "width=900,height=700");
     if (!printWindow) {
       alert("Autorise les popups pour télécharger le PDF");
       setPdfLoading(false);
       return;
     }
-
-    // Extraire le innerHTML du clone avec les styles inline
-    const cvContent = clone.innerHTML;
-    const outerStyle = clone.getAttribute("style") || "";
 
     printWindow.document.write(`<!DOCTYPE html>
 <html lang="fr">
@@ -1006,58 +1141,24 @@ export default function CVCraft() {
   <title>CV ${data.fname} ${data.lname}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    html, body {
-      width: 210mm;
-      background: #fff;
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-    }
-
-    body {
-      padding: 0;
-      margin: 0;
-    }
-
-    .cv-wrapper {
-      width: 210mm;
-      min-height: 297mm;
-      background: #fff;
-      position: relative;
-    }
-
+    html, body { width: 210mm; background: #fff; }
     @media print {
-      @page {
-        size: A4 portrait;
-        margin: 0;
-      }
-      html, body {
-        width: 210mm;
-        height: 297mm;
-      }
-      body {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-        color-adjust: exact !important;
-      }
-      .no-print { display: none !important; }
+      @page { size: A4 portrait; margin: 0; }
+      html, body { width: 210mm; height: 297mm; }
+      body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     }
-
-    ${allStyles}
   </style>
 </head>
 <body>
-  <div class="cv-wrapper" style="${outerStyle.replace(/max-width:[^;]+;?/g, '').replace(/width:[^;]+;?/g, '')}; width: 210mm; max-width: 210mm;">
-    ${cvContent}
+  <div style="width:210mm;min-height:297mm;">
+    ${cvHTML}
   </div>
   <script>
-    // Attendre que les fonts et images chargent
     window.addEventListener('load', function() {
       setTimeout(function() {
         window.print();
-        window.onafterprint = function() {
-          window.close();
-        };
-      }, 800);
+        window.onafterprint = function() { window.close(); };
+      }, 600);
     });
   </script>
 </body>
@@ -1066,6 +1167,8 @@ export default function CVCraft() {
     printWindow.document.close();
     setPdfLoading(false);
   };
+
+
 
 ;
 
